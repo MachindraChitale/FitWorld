@@ -50,10 +50,14 @@ async function loginUser() {
         document.getElementById("authSection").classList.add("hidden-section");
         document.getElementById("appHeader").classList.remove("hidden-section");
         document.getElementById("mainApp").classList.remove("hidden-section");
-        showDashboard();
+
+        // activate first nav button
+        const firstNav = document.querySelector("nav .nav-btn");
+        showDashboard(firstNav);
+
         loadProfile();
-        loadExercises(); // load saved exercises if any
-        getMeals();      // load saved meals
+        loadExercises();
+        getMeals();
     } else {
         alert(data.error);
     }
@@ -71,31 +75,31 @@ function logout() {
 // ------------------------------
 function setActiveNav(btn) {
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+    if (btn) btn.classList.add("active");
 }
 
-function showDashboard() {
+function showDashboard(btn) {
     toggleSection("dashboard");
     updateDashboard();
-    setActiveNav(event.target);
+    setActiveNav(btn);
 }
 
-function showExercise() {
+function showExercise(btn) {
     toggleSection("exercise");
     loadExercises();
-    setActiveNav(event.target);
+    setActiveNav(btn);
 }
 
-function showNutrition() {
+function showNutrition(btn) {
     toggleSection("nutrition");
     getMeals();
-    setActiveNav(event.target);
+    setActiveNav(btn);
 }
 
-function showProfile() {
+function showProfile(btn) {
     toggleSection("profile");
-    setActiveNav(event.target);
     loadProfile();
+    setActiveNav(btn);
 }
 
 function toggleSection(sectionId) {
@@ -110,7 +114,7 @@ async function addMeal() {
     const meal = document.getElementById("mealInput").value;
     if (!meal) return alert("Enter a meal");
 
-    const calories = Math.floor(Math.random() * 200) + 50; // simulate calories
+    const calories = Math.floor(Math.random() * 200) + 50;
 
     await fetch(`${BASE_URL}/api/nutrition`, {
         method: "POST",
@@ -133,9 +137,11 @@ async function getMeals() {
     meals.forEach((m, i) => {
         const p = document.createElement("p");
         p.textContent = `${m.meal} - ${m.calories} kcal`;
+
         const btn = document.createElement("button");
         btn.textContent = "Delete";
         btn.onclick = () => deleteMeal(i);
+
         p.appendChild(btn);
         list.appendChild(p);
         total += m.calories;
@@ -163,14 +169,17 @@ function loadExercises() {
 
     saved.forEach(ex => {
         const item = document.createElement("p");
+
         const vol = ex.sets * ex.reps * (ex.weight || 0);
         totalVolume += vol;
-        totalDuration += ex.duration || 10; // default duration for older entries
+        totalDuration += ex.duration || 10;
 
-        item.textContent = `${ex.name} - ${ex.sets} sets × ${ex.reps} reps (${ex.weight || 0}kg)`;
+        item.textContent = `${ex.name} - ${ex.sets} × ${ex.reps} (${ex.weight || 0}kg)`;
+
         const btn = document.createElement("button");
         btn.textContent = "Delete";
         btn.onclick = () => deleteExercise(ex.name);
+
         item.appendChild(btn);
         list.appendChild(item);
     });
@@ -188,13 +197,10 @@ function addSetRepExercise() {
     const reps = parseInt(document.getElementById("exReps").value);
     const weight = parseInt(document.getElementById("exWeight").value || 0);
 
-    if (!name || !sets || !reps) {
-        alert("Please fill all required fields!");
-        return;
-    }
+    if (!name || !sets || !reps) return alert("Please fill all fields!");
 
     const saved = JSON.parse(localStorage.getItem("exercises")) || [];
-    saved.push({ name, sets, reps, weight, duration: sets * reps }); // approximate duration
+    saved.push({ name, sets, reps, weight, duration: sets * reps });
     localStorage.setItem("exercises", JSON.stringify(saved));
 
     document.getElementById("exName").value = "";
@@ -260,24 +266,58 @@ async function updateProfile() {
 }
 
 // ------------------------------
-// SPEECH INPUT
+// SPEECH INPUT (FIXED)
 // ------------------------------
 function startVoiceMeal() {
-    if (!('webkitSpeechRecognition' in window)) return alert("Speech not supported");
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.start();
-    recognition.onresult = function(event) {
-        document.getElementById("mealInput").value = event.results[0][0].transcript;
+    if (!window.webkitSpeechRecognition) {
+        alert("Your browser does not support voice input.");
+        return;
     }
+
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onerror = function (e) {
+        console.error("Speech error:", e.error);
+
+        if (e.error === "not-allowed") {
+            alert("Microphone is blocked. Click the lock icon → Site settings → Microphone → Allow");
+        }
+    };
+
+    recognition.onresult = function (event) {
+        document.getElementById("mealInput").value =
+            event.results[0][0].transcript;
+    };
+
+    recognition.start();
 }
 
 function startVoiceExercise() {
-    if (!('webkitSpeechRecognition' in window)) return alert("Speech not supported");
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.start();
-    recognition.onresult = function(event) {
-        document.getElementById("exName").value = event.results[0][0].transcript;
+    if (!window.webkitSpeechRecognition) {
+        alert("Your browser does not support voice input.");
+        return;
     }
+
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onerror = function (e) {
+        console.error("Speech error:", e.error);
+
+        if (e.error === "not-allowed") {
+            alert("Microphone is blocked. Click the lock icon → Site settings → Microphone → Allow");
+        }
+    };
+
+    recognition.onresult = function (event) {
+        document.getElementById("exName").value =
+            event.results[0][0].transcript;
+    };
+
+    recognition.start();
 }
