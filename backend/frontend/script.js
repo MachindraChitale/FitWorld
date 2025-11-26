@@ -1,4 +1,5 @@
-const BASE_URL = "http://localhost:5000"; 
+const BASE_URL = "https://fitworld-1.onrender.com";
+
 let currentUser = "";
 
 // ------------------------------
